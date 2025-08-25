@@ -27,7 +27,9 @@
       border-radius: 8px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
     }
-    .controls-panel { flex: 1; }
+    .controls-panel {
+      flex: 0 0 400px; /* Ancho fijo: no crece (0), no se encoge (0), base de 400px. */
+    }
     .preview-panel { flex: 1; }
     h2 { text-align: center; color: #ffffff; margin-bottom: 30px; }
     label { font-weight: 500; display: block; margin-bottom: 6px; }
@@ -62,7 +64,7 @@
   <div class="main-container">
     <div class="controls-panel">
       <div>
-        <label for="etiquetaAncho">1. Define la proporción de la etiqueta (en cm):</label>
+        <label for="etiquetaAncho">1. Define el tamaño deseado de la etiqueta (en cm):</label>
         <div class="size-inputs">
           <input type="number" id="etiquetaAncho" placeholder="Ancho (cm)" value="4">
           <input type="number" id="etiquetaAlto" placeholder="Alto (cm)" value="6">
@@ -113,22 +115,34 @@
     }
 
     function calculateFinalDimensions(anchoCm, altoCm) {
+        const PUNTOS_POR_CM = 28.346;
         const pageWidth = 612; // Letter width in points
         const MARGEN = 36;
-
-        const areaUtilAncho = pageWidth - (2 * MARGEN);
-        const columnas = 5;
         const GAP_HORIZONTAL = 5; // Puntos de espacio entre etiquetas
+        const areaUtilAncho = pageWidth - (2 * MARGEN);
 
-        const etiquetaAnchoPt = (areaUtilAncho - (GAP_HORIZONTAL * (columnas - 1))) / columnas;
-        
         if (anchoCm <= 0 || altoCm <= 0) {
-            return { etiquetaAnchoPt, etiquetaAltoPt: 0 };
+            return { etiquetaAnchoPt: 0, etiquetaAltoPt: 0, columnas: 0 };
         }
+
+        const etiquetaAnchoDeseadoPt = anchoCm * PUNTOS_POR_CM;
+
+        // Calcular cuántas columnas caben basadas en el ancho deseado.
+        // Si el ancho deseado es mayor que el área útil, forzamos a 1 columna.
+        const columnas = etiquetaAnchoDeseadoPt > areaUtilAncho
+            ? 1
+            : Math.floor((areaUtilAncho + GAP_HORIZONTAL) / (etiquetaAnchoDeseadoPt + GAP_HORIZONTAL));
+
+        if (columnas < 1) { // Si el cálculo da 0, no es un tamaño válido.
+            return { etiquetaAnchoPt: 0, etiquetaAltoPt: 0, columnas: 0 };
+        }
+
+        // Recalcular el ancho real de la etiqueta para que todas las columnas llenen el espacio disponible de forma uniforme.
+        const etiquetaAnchoPt = (areaUtilAncho - (GAP_HORIZONTAL * (columnas - 1))) / columnas;
         const aspectRatio = anchoCm / altoCm;
         const etiquetaAltoPt = etiquetaAnchoPt / aspectRatio;
 
-        return { etiquetaAnchoPt, etiquetaAltoPt };
+        return { etiquetaAnchoPt, etiquetaAltoPt, columnas };
     }
     document.getElementById("generarPDF").addEventListener("click", async () => {
       try {
@@ -165,15 +179,17 @@
 
         // --- 3. CALCULAR DISEÑO DE LA PÁGINA (GRID) USANDO LAS MEDIDAS DEL USUARIO ---
         const MARGEN = 36; // 0.5 pulgadas de margen (72 puntos = 1 pulgada)
-        
-        // Se calcula el tamaño final para que quepan 5 columnas
-        const { etiquetaAnchoPt: etiquetaAncho, etiquetaAltoPt: etiquetaAlto } = calculateFinalDimensions(etiquetaAnchoCM, etiquetaAltoCM);
-        
-        const areaUtilAncho = pageWidth - (2 * MARGEN);
-        const areaUtilAlto = pageHeight - (2 * MARGEN);
 
-        const columnas = 5; // Forzado a 5 columnas
-        const filas = Math.floor(areaUtilAlto / etiquetaAlto);
+        // Calcular dimensiones y número de columnas dinámicamente
+        const { etiquetaAnchoPt: etiquetaAncho, etiquetaAltoPt: etiquetaAlto, columnas } = calculateFinalDimensions(etiquetaAnchoCM, etiquetaAltoCM);
+
+        if (columnas < 1) {
+          alert("El tamaño de la etiqueta es inválido. Por favor, introduce un ancho válido y mayor que cero.");
+          return;
+        }
+
+        const areaUtilAlto = pageHeight - (2 * MARGEN);
+        const filas = etiquetaAlto > 0 ? Math.floor(areaUtilAlto / etiquetaAlto) : 0;
 
         // Calcular espaciado para distribuir uniformemente las etiquetas
         const espacioHorizontal = 5; // El mismo gap usado en el cálculo
