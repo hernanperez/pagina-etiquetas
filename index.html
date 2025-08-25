@@ -210,7 +210,7 @@
             // --- Lógica de Posicionamiento Vertical (Alineado desde Abajo) ---
             const lineHeight = fontSize * 1.2;
             const totalTextHeight = (lines.length - 1) * lineHeight;
-            const textBottomMargin = 5; // Puntos desde el borde inferior de la etiqueta.
+            const textBottomMargin = 12; // Puntos desde el borde inferior de la etiqueta.
 
             // Calcula la posición Y de la PRIMERA línea, basándose en la posición inferior.
             const startY = posY + textBottomMargin + totalTextHeight;
@@ -272,7 +272,7 @@
       previewEtiqueta.style.height = `${previewHeight * PREVIEW_SCALE_FACTOR}px`;
       
       // Simular la posición del texto usando CSS
-      const textBottomMargin = 5; // Debe coincidir con el valor en el generador de PDF
+      const textBottomMargin = 12; // Debe coincidir con el valor en el generador de PDF
       previewEtiqueta.style.paddingBottom = `${textBottomMargin}px`;
 
       // Limpiar texto anterior y añadir el nuevo
